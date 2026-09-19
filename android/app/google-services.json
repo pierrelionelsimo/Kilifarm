@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "770509378194",
+    "project_id": "kilifarm-5bb48",
+    "storage_bucket": "kilifarm-5bb48.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:770509378194:android:24ea5336b10160080a8c4b",
+        "android_client_info": {
+          "package_name": "com.example.kilifarm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyMpc4rxQM3L1gS0vC1p26NnqG6S_1GFE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

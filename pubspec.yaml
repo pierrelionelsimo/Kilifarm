@@ -1,0 +1,42 @@
+name: kilifarm
+description: Plateforme sociale agricole et d'élevage
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.3
+  provider: ^6.1.2
+  google_sign_in: ^6.2.1
+  http: ^1.2.2
+  image_picker: ^1.1.2
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/
+
+# Icône avec fond vert (icon_k) : utilisée pour l'icône de l'app sur
+# l'écran d'accueil du téléphone (fallback iOS + versions Android anciennes).
+# Icône sans fond (icon_sf) : utilisée comme calque "foreground" pour
+# l'icône adaptative Android — le fond vert est généré séparément en
+# couleur unie, ce qui donne un rendu net quelle que soit la forme du
+# masque (cercle, carré arrondi, goutte...) selon le launcher du téléphone.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon_k.png"
+  adaptive_icon_background: "#1B5E20"
+  adaptive_icon_foreground: "assets/icon/icon_sf.png"
