@@ -215,3 +215,4 @@ essaies d'aimer un post qui n'est pas le tien.
   après les commentaires
 - Photo de profil réelle (upload) — V1 utilise un avatar par
   initiales, décision prise volontairement pour rester simple
+"# Kilifarm" 
