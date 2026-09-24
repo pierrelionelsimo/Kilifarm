@@ -6,6 +6,7 @@ import '../../providers/feed_provider.dart';
 import '../../widgets/initials_avatar.dart';
 import '../../widgets/post_card.dart';
 import '../profile/profile_screen.dart';
+import '../search/search_screen.dart';
 import '../post/create_post_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -54,6 +55,15 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('KILIFARM'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: 'Rechercher',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SearchScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: authProvider.userModel != null
                 ? InitialsAvatar(
