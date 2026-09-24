@@ -124,4 +124,17 @@ class PostService {
       }
     });
   }
+
+  /// Supprime une publication. Note technique : Firestore ne supprime
+  /// PAS automatiquement les sous-collections (ex: /likes) d'un document
+  /// supprimé — elles restent orphelines. Négligeable à l'échelle V1
+  /// (quelques documents vides, aucun coût réel), mais à garder en tête
+  /// si le volume grossit un jour. Même chose pour les images restées
+  /// sur Cloudinary : leur suppression nécessite un appel signé (clé
+  /// secrète), qu'on ne peut pas faire depuis l'app cliente sans risquer
+  /// de l'exposer — accepté comme dette technique V1, largement dans les
+  /// limites du plan gratuit (25 Go).
+  Future<void> deletePost(String postId) async {
+    await _firestore.collection(AppConstants.postsCollection).doc(postId).delete();
+  }
 }

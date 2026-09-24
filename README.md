@@ -166,12 +166,12 @@ static const String uploadPreset = 'kilifarm_unsigned';  // étape 3
 du preset, limite `Max file size` (ex: 5 Mo) et restreins `Allowed
 formats` à `jpg, png` pour éviter les abus.
 
-## 10. Règles Firestore mises à jour (posts + likes)
+## 10. Règles Firestore mises à jour (posts + likes + commentaires)
 
-**Remplace de nouveau tes règles** — cette version ajoute la possibilité
-pour n'importe quel utilisateur connecté d'aimer un post (modifier
-`likesCount`), sans pour autant pouvoir modifier le reste du post
-(seul son propriétaire le peut) :
+**Remplace de nouveau tes règles** — cette version ajoute les
+commentaires : lecture/écriture sur la sous-collection, et
+l'autorisation de modifier `commentsCount` (même logique que pour
+`likesCount`) :
 
 ```
 rules_version = '2';
@@ -188,7 +188,9 @@ service cloud.firestore {
       allow update: if request.auth != null && (
         resource.data.userId == request.auth.uid ||
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['likesCount'])
+          .hasOnly(['likesCount']) ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['commentsCount'])
       );
       allow delete: if request.auth != null
         && resource.data.userId == request.auth.uid;
@@ -198,21 +200,25 @@ service cloud.firestore {
         allow create, delete: if request.auth != null
           && request.auth.uid == userId;
       }
+
+      match /comments/{commentId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.resource.data.userId == request.auth.uid;
+      }
     }
   }
 }
 ```
 
-**Sans cette mise à jour**, le bouton like et le double-tap échoueront
-silencieusement (ou avec `PERMISSION_DENIED` dans les logs) dès que tu
-essaies d'aimer un post qui n'est pas le tien.
+**Sans cette mise à jour**, envoyer un commentaire échouera avec
+`PERMISSION_DENIED` — même symptôme que pour les likes.
 
 ## 11. Ce qu'il reste à faire (pas dans ce lot)
 
-- Commentaires pas encore interactifs (icône affichée, pas cliquable)
-  — prochaine étape du scope V1
-- Pas de recherche/annuaire d'utilisateurs — étape "Recherche",
-  après les commentaires
+- Suppression de son propre commentaire — pas construit en V1,
+  ajoutable facilement plus tard sans rien casser
+- Pas de recherche/annuaire d'utilisateurs — prochaine étape du
+  scope V1
 - Photo de profil réelle (upload) — V1 utilise un avatar par
   initiales, décision prise volontairement pour rester simple
-"# Kilifarm" 

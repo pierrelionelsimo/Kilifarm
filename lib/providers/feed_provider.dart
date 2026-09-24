@@ -124,4 +124,42 @@ class FeedProvider extends ChangeNotifier {
       return false;
     }
   }
+
+  /// Incrémente localement le compteur de commentaires d'un post,
+  /// après un ajout réussi depuis le panneau de commentaires — évite
+  /// d'attendre un rechargement complet du fil pour voir le chiffre
+  /// se mettre à jour sur la carte.
+  void incrementCommentCount(String postId) {
+    final index = _posts.indexWhere((p) => p.id == postId);
+    if (index == -1) return;
+
+    final post = _posts[index];
+    _posts[index] = PostModel(
+      id: post.id,
+      userId: post.userId,
+      userName: post.userName,
+      userProfileImage: post.userProfileImage,
+      content: post.content,
+      imageUrls: post.imageUrls,
+      createdAt: post.createdAt,
+      likesCount: post.likesCount,
+      commentsCount: post.commentsCount + 1,
+      isLikedByMe: post.isLikedByMe,
+    );
+    notifyListeners();
+  }
+
+  /// Supprime un post et le retire immédiatement de l'affichage local.
+  Future<bool> deletePost(String postId) async {
+    try {
+      await _postService.deletePost(postId);
+      _posts.removeWhere((p) => p.id == postId);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Erreur lors de la suppression.';
+      notifyListeners();
+      return false;
+    }
+  }
 }

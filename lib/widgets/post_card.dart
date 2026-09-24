@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../models/post_model.dart';
+import 'comments_sheet.dart';
 import 'initials_avatar.dart';
 
 /// Carte de publication façon Instagram : images plein cadre défilables
@@ -11,12 +12,16 @@ class PostCard extends StatefulWidget {
   final PostModel post;
   final String currentUserId;
   final void Function(String postId) onLikeToggle;
+  final void Function(String postId) onDelete;
+  final void Function(String postId) onCommentAdded;
 
   const PostCard({
     super.key,
     required this.post,
     required this.currentUserId,
     required this.onLikeToggle,
+    required this.onDelete,
+    required this.onCommentAdded,
   });
 
   @override
@@ -81,6 +86,36 @@ class _PostCardState extends State<PostCard>
     return 'il y a ${diff.inDays} j';
   }
 
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer la publication ?'),
+        content: const Text('Cette action est irréversible.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      widget.onDelete(widget.post.id);
+    }
+  }
+
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$feature bientôt disponible')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
@@ -112,7 +147,22 @@ class _PostCardState extends State<PostCard>
                     ],
                   ),
                 ),
-                const Icon(Icons.more_vert, size: 20, color: AppTheme.textLight),
+                if (post.userId == widget.currentUserId)
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert,
+                        size: 20, color: AppTheme.textLight),
+                    onSelected: (value) {
+                      if (value == 'delete') _confirmDelete();
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Text('Supprimer'),
+                      ),
+                    ],
+                  )
+                else
+                  const SizedBox(width: 20),
               ],
             ),
           ),
@@ -188,13 +238,21 @@ class _PostCardState extends State<PostCard>
                   ),
                   onPressed: () => widget.onLikeToggle(post.id),
                 ),
-                const IconButton(
-                  icon: Icon(Icons.chat_bubble_outline, color: AppTheme.textDark),
-                  onPressed: null, // commentaires : prochaine étape du scope V1
+                IconButton(
+                  icon: const Icon(Icons.chat_bubble_outline,
+                      color: AppTheme.textDark),
+                  onPressed: () {
+                    CommentsSheet.show(
+                      context,
+                      postId: post.id,
+                      onCommentAdded: () => widget.onCommentAdded(post.id),
+                    );
+                  },
                 ),
-                const IconButton(
-                  icon: Icon(Icons.share_outlined, color: AppTheme.textDark),
-                  onPressed: null, // partage : pas prévu en V1
+                IconButton(
+                  icon: const Icon(Icons.share_outlined,
+                      color: AppTheme.textDark),
+                  onPressed: () => _showComingSoon('Le partage'),
                 ),
               ],
             ),

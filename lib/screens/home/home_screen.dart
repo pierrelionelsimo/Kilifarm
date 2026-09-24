@@ -166,6 +166,9 @@ class _HomeScreenState extends State<HomeScreen> {
             currentUserId: uid,
             onLikeToggle: (postId) =>
                 feedProvider.toggleLike(postId: postId, userId: uid),
+            onDelete: (postId) => feedProvider.deletePost(postId),
+            onCommentAdded: (postId) =>
+                feedProvider.incrementCommentCount(postId),
           );
         },
       ),
