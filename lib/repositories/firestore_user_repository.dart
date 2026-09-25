@@ -1,19 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../config/constants.dart';
+import 'user_repository.dart';
 
-class UserService {
+class FirestoreUserRepository implements UserRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Recherche des utilisateurs par région et/ou type d'activité
-  /// (filtrés côté serveur, sans index composite nécessaire — deux
-  /// égalités simples se combinent sans souci sur Firestore), puis
-  /// par nom (filtré côté client, insensible à la casse).
-  ///
-  /// Choix volontaire pour V1 : pas de recherche plein-texte via un
-  /// service tiers (Algolia...) — hors scope, un fetch limité +
-  /// filtre en mémoire suffit largement au volume d'utilisateurs
-  /// attendu au démarrage.
+  @override
   Future<List<UserModel>> searchUsers({
     String? nameQuery,
     String? region,
@@ -45,8 +38,6 @@ class UserService {
           users.where((u) => u.fullName.toLowerCase().contains(lower)).toList();
     }
 
-    // Tri alphabétique côté client — évite un orderBy() Firestore qui
-    // exigerait, lui, un vrai index composite combiné aux filtres.
     users.sort((a, b) => a.fullName.compareTo(b.fullName));
 
     return users;

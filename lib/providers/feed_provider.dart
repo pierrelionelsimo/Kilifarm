@@ -2,11 +2,14 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/post_model.dart';
-import '../services/post_service.dart';
+import '../repositories/post_repository.dart';
 import '../config/constants.dart';
 
 class FeedProvider extends ChangeNotifier {
-  final PostService _postService = PostService();
+  final PostRepository _postRepository;
+
+  FeedProvider({required PostRepository postRepository})
+      : _postRepository = postRepository;
 
   final List<PostModel> _posts = [];
   DocumentSnapshot? _lastDoc;
@@ -27,7 +30,7 @@ class FeedProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _postService.fetchPosts(currentUserId: currentUserId);
+      final result = await _postRepository.fetchPosts(currentUserId: currentUserId);
       _posts
         ..clear()
         ..addAll(result.posts);
@@ -48,7 +51,7 @@ class FeedProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _postService.fetchPosts(
+      final result = await _postRepository.fetchPosts(
         startAfter: _lastDoc,
         currentUserId: currentUserId,
       );
@@ -92,7 +95,7 @@ class FeedProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _postService.toggleLike(postId: postId, userId: userId);
+      await _postRepository.toggleLike(postId: postId, userId: userId);
     } catch (_) {
       // Échec réseau : on annule la mise à jour optimiste.
       _posts[index] = original;
@@ -100,35 +103,8 @@ class FeedProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> createPost({
-    required String userId,
-    required String userName,
-    String? userProfileImage,
-    required String content,
-    required List<File> images,
-  }) async {
-    _errorMessage = null;
-    try {
-      await _postService.createPost(
-        userId: userId,
-        userName: userName,
-        userProfileImage: userProfileImage,
-        content: content,
-        images: images,
-      );
-      await loadInitial(); // remonte le nouveau post en tête de fil
-      return true;
-    } catch (e) {
-      _errorMessage = e is String ? e : 'Erreur lors de la publication.';
-      notifyListeners();
-      return false;
-    }
-  }
-
   /// Incrémente localement le compteur de commentaires d'un post,
-  /// après un ajout réussi depuis le panneau de commentaires — évite
-  /// d'attendre un rechargement complet du fil pour voir le chiffre
-  /// se mettre à jour sur la carte.
+  /// après un ajout réussi depuis le panneau de commentaires.
   void incrementCommentCount(String postId) {
     final index = _posts.indexWhere((p) => p.id == postId);
     if (index == -1) return;
@@ -152,12 +128,37 @@ class FeedProvider extends ChangeNotifier {
   /// Supprime un post et le retire immédiatement de l'affichage local.
   Future<bool> deletePost(String postId) async {
     try {
-      await _postService.deletePost(postId);
+      await _postRepository.deletePost(postId);
       _posts.removeWhere((p) => p.id == postId);
       notifyListeners();
       return true;
     } catch (e) {
       _errorMessage = 'Erreur lors de la suppression.';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> createPost({
+    required String userId,
+    required String userName,
+    String? userProfileImage,
+    required String content,
+    required List<File> images,
+  }) async {
+    _errorMessage = null;
+    try {
+      await _postRepository.createPost(
+        userId: userId,
+        userName: userName,
+        userProfileImage: userProfileImage,
+        content: content,
+        images: images,
+      );
+      await loadInitial(); // remonte le nouveau post en tête de fil
+      return true;
+    } catch (e) {
+      _errorMessage = e is String ? e : 'Erreur lors de la publication.';
       notifyListeners();
       return false;
     }

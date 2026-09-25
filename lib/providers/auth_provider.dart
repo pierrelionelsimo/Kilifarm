@@ -1,15 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
-import '../services/auth_service.dart';
+import '../repositories/auth_repository.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final AuthService _authService = AuthService();
+  final AuthRepository _authRepository;
 
   User? _currentUser;
   UserModel? _userModel;
   bool _isLoading = false;
-  bool _isInitialized = false; // FIX: vrai seulement après la 1ère réponse Firebase
+  bool _isInitialized = false; // vrai seulement après la 1ère réponse Firebase
   String? _errorMessage;
 
   User? get currentUser => _currentUser;
@@ -19,18 +19,22 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _currentUser != null;
 
-  AuthProvider() {
-    _authService.authStateChanges.listen((User? user) async {
+  // Dépendance explicite, aucune valeur par défaut cachée : c'est
+  // main.dart (composition root) qui décide quelle implémentation
+  // concrète est réellement utilisée.
+  AuthProvider({required AuthRepository authRepository})
+      : _authRepository = authRepository {
+    _authRepository.authStateChanges.listen((User? user) async {
       _currentUser = user;
 
       if (user == null) {
         _userModel = null;
       } else {
-        // FIX: recharge le profil Firestore à chaque session détectée
+        // Recharge le profil Firestore à chaque session détectée
         // (démarrage de l'app avec session persistée, pas seulement
         // au moment du login/register explicite).
         try {
-          _userModel = await _authService.fetchUserProfile(user.uid);
+          _userModel = await _authRepository.fetchUserProfile(user.uid);
         } catch (_) {
           _userModel = null;
         }
@@ -53,7 +57,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final UserModel user = await _authService.registerWithEmail(
+      final UserModel user = await _authRepository.registerWithEmail(
         fullName: fullName,
         email: email,
         password: password,
@@ -62,7 +66,7 @@ class AuthProvider extends ChangeNotifier {
       );
 
       _userModel = user;
-      _currentUser = _authService.currentUser;
+      _currentUser = _authRepository.currentUser;
       _isLoading = false;
       notifyListeners();
       return true;
@@ -83,14 +87,14 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final UserModel? user = await _authService.loginWithEmail(
+      final UserModel? user = await _authRepository.loginWithEmail(
         email: email,
         password: password,
       );
 
       if (user != null) {
         _userModel = user;
-        _currentUser = _authService.currentUser;
+        _currentUser = _authRepository.currentUser;
         _isLoading = false;
         notifyListeners();
         return true;
@@ -113,11 +117,11 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final UserModel? user = await _authService.signInWithGoogle();
+      final UserModel? user = await _authRepository.signInWithGoogle();
 
       if (user != null) {
         _userModel = user;
-        _currentUser = _authService.currentUser;
+        _currentUser = _authRepository.currentUser;
         _isLoading = false;
         notifyListeners();
         return true;
@@ -158,7 +162,7 @@ class AuthProvider extends ChangeNotifier {
         phoneNumber: phoneNumber,
       );
 
-      await _authService.updateProfile(updated);
+      await _authRepository.updateProfile(updated);
 
       _userModel = updated;
       _isLoading = false;
@@ -173,7 +177,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _authService.signOut();
+    await _authRepository.signOut();
     _currentUser = null;
     _userModel = null;
     notifyListeners();

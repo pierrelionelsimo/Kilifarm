@@ -2,15 +2,23 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/post_model.dart';
 import '../config/constants.dart';
-import 'cloudinary_service.dart';
+import 'media_repository.dart';
+import 'post_repository.dart';
 
-class PostService {
+class FirestorePostRepository implements PostRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final CloudinaryService _cloudinary = CloudinaryService();
 
-  /// Crée une publication. Les images sont uploadées vers Cloudinary
-  /// AVANT l'écriture Firestore : si l'upload échoue, on ne crée pas
-  /// un post avec des URLs manquantes.
+  // Injecté par le constructeur : FirestorePostRepository ne sait pas
+  // QUI héberge les images (Cloudinary aujourd'hui), seulement QUE
+  // quelque chose implémentant MediaRepository peut le faire. C'est
+  // exactement ce qui aurait rendu le swap Storage→Cloudinary invisible
+  // à ce niveau si cette couche avait existé avant.
+  final MediaRepository _mediaRepository;
+
+  FirestorePostRepository({required MediaRepository mediaRepository})
+      : _mediaRepository = mediaRepository;
+
+  @override
   Future<void> createPost({
     required String userId,
     required String userName,
@@ -20,8 +28,9 @@ class PostService {
   }) async {
     final docRef = _firestore.collection(AppConstants.postsCollection).doc();
 
-    final imageUrls =
-        images.isEmpty ? <String>[] : await _cloudinary.uploadImages(images);
+    final imageUrls = images.isEmpty
+        ? <String>[]
+        : await _mediaRepository.uploadImages(images);
 
     final post = PostModel(
       id: docRef.id,
@@ -36,10 +45,7 @@ class PostService {
     await docRef.set(post.toMap());
   }
 
-  /// Récupère une page de publications, triées des plus récentes aux
-  /// plus anciennes. Passe `startAfter` (dernier document de la page
-  /// précédente) pour paginer. Si `currentUserId` est fourni, vérifie
-  /// pour chaque post si cet utilisateur l'a déjà aimé (isLikedByMe).
+  @override
   Future<({List<PostModel> posts, DocumentSnapshot? lastDoc})> fetchPosts({
     DocumentSnapshot? startAfter,
     String? currentUserId,
@@ -90,11 +96,7 @@ class PostService {
     );
   }
 
-  /// Ajoute ou retire le like d'un utilisateur sur une publication.
-  /// Utilise une transaction Firestore pour garder `likesCount`
-  /// toujours exact, même avec plusieurs utilisateurs simultanés.
-  /// Le like lui-même est stocké comme document dans la sous-collection
-  /// `posts/{postId}/likes/{userId}` — son existence = "a aimé".
+  @override
   Future<void> toggleLike({
     required String postId,
     required String userId,
@@ -108,8 +110,7 @@ class PostService {
       final postSnap = await transaction.get(postRef);
       if (!postSnap.exists) return;
 
-      final currentLikes =
-          (postSnap.data()?['likesCount'] as int?) ?? 0;
+      final currentLikes = (postSnap.data()?['likesCount'] as int?) ?? 0;
 
       if (likeSnap.exists) {
         transaction.delete(likeRef);
@@ -125,15 +126,7 @@ class PostService {
     });
   }
 
-  /// Supprime une publication. Note technique : Firestore ne supprime
-  /// PAS automatiquement les sous-collections (ex: /likes) d'un document
-  /// supprimé — elles restent orphelines. Négligeable à l'échelle V1
-  /// (quelques documents vides, aucun coût réel), mais à garder en tête
-  /// si le volume grossit un jour. Même chose pour les images restées
-  /// sur Cloudinary : leur suppression nécessite un appel signé (clé
-  /// secrète), qu'on ne peut pas faire depuis l'app cliente sans risquer
-  /// de l'exposer — accepté comme dette technique V1, largement dans les
-  /// limites du plan gratuit (25 Go).
+  @override
   Future<void> deletePost(String postId) async {
     await _firestore.collection(AppConstants.postsCollection).doc(postId).delete();
   }

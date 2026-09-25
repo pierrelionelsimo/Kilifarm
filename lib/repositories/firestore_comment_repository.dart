@@ -1,17 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/comment_model.dart';
 import '../config/constants.dart';
+import 'comment_repository.dart';
 
-/// Gère les commentaires en sous-collection posts/{postId}/comments,
-/// même logique architecturale que les likes (posts/{postId}/likes) :
-/// un seul pattern d'accès nécessaire (les commentaires D'UN post),
-/// donc pas besoin d'une collection racine avec index composite.
-class CommentService {
+class FirestoreCommentRepository implements CommentRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Flux temps réel des commentaires d'un post, du plus ancien au
-  /// plus récent. Se met à jour automatiquement tant que le panneau
-  /// de commentaires reste ouvert (écoute Firestore native).
+  @override
   Stream<List<CommentModel>> watchComments(String postId) {
     return _firestore
         .collection(AppConstants.postsCollection)
@@ -24,10 +19,7 @@ class CommentService {
             .toList());
   }
 
-  /// Ajoute un commentaire et incrémente commentsCount sur le post
-  /// parent. `FieldValue.increment` est atomique côté serveur : pas
-  /// besoin d'une transaction complète comme pour toggleLike, puisqu'on
-  /// ne fait qu'incrémenter (pas de bascule like/unlike à gérer ici).
+  @override
   Future<void> addComment({
     required String postId,
     required String userId,

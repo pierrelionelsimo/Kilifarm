@@ -4,7 +4,8 @@ import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/user_service.dart';
+import '../../repositories/user_repository.dart';
+import '../../repositories/firestore_user_repository.dart';
 import '../../widgets/initials_avatar.dart';
 import '../profile/public_profile_screen.dart';
 
@@ -16,7 +17,7 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final UserService _userService = UserService();
+  final UserRepository _userRepository = FirestoreUserRepository();
   final TextEditingController _nameController = TextEditingController();
 
   List<UserModel> _allResults = []; // filtré région/activité (côté serveur)
@@ -48,7 +49,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
     try {
       final currentUserId = context.read<AuthProvider>().userModel?.uid;
-      final results = await _userService.searchUsers(
+      final results = await _userRepository.searchUsers(
         region: _selectedRegion,
         activityType: _selectedActivityType,
         excludeUserId: currentUserId,

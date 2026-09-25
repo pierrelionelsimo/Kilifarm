@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../models/comment_model.dart';
 import '../providers/auth_provider.dart';
-import '../services/comment_service.dart';
+import '../repositories/comment_repository.dart';
+import '../repositories/firestore_comment_repository.dart';
 import 'initials_avatar.dart';
 
 /// Panneau de commentaires en bottom sheet, façon Instagram/Facebook.
@@ -45,7 +46,7 @@ class CommentsSheet extends StatefulWidget {
 }
 
 class _CommentsSheetState extends State<CommentsSheet> {
-  final CommentService _commentService = CommentService();
+  final CommentRepository _commentRepository = FirestoreCommentRepository();
   final TextEditingController _controller = TextEditingController();
   bool _isSending = false;
 
@@ -65,7 +66,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
     setState(() => _isSending = true);
 
     try {
-      await _commentService.addComment(
+      await _commentRepository.addComment(
         postId: widget.postId,
         userId: user.uid,
         userName: user.fullName,
@@ -123,7 +124,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
               const Divider(height: 20),
               Expanded(
                 child: StreamBuilder<List<CommentModel>>(
-                  stream: _commentService.watchComments(widget.postId),
+                  stream: _commentRepository.watchComments(widget.postId),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());

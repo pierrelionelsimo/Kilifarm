@@ -3,16 +3,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 import '../config/constants.dart';
+import 'auth_repository.dart';
 
-class AuthService {
+class FirebaseAuthRepository implements AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  User? get currentUser => _auth.currentUser;
-
+  @override
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
+  @override
+  User? get currentUser => _auth.currentUser;
+
+  @override
   Future<UserModel> registerWithEmail({
     required String fullName,
     required String email,
@@ -51,6 +55,7 @@ class AuthService {
     }
   }
 
+  @override
   Future<UserModel?> loginWithEmail({
     required String email,
     required String password,
@@ -69,9 +74,7 @@ class AuthService {
     }
   }
 
-  /// Connexion (ou inscription automatique) via Google.
-  /// Retourne `null` si l'utilisateur annule la connexion depuis le
-  /// sélecteur de compte Google — ce n'est pas une erreur à afficher.
+  @override
   Future<UserModel?> signInWithGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -90,14 +93,9 @@ class AuthService {
       final User? user = userCredential.user;
       if (user == null) return null;
 
-      // Si un profil existe déjà (utilisateur revenant), on le réutilise.
       final existingProfile = await fetchUserProfile(user.uid);
       if (existingProfile != null) return existingProfile;
 
-      // Sinon, première connexion via Google : on crée le profil
-      // avec les infos fournies par le compte Google (nom, photo).
-      // Région et type d'activité restent vides — à compléter à
-      // l'étape "Profil".
       final UserModel newUser = UserModel(
         uid: user.uid,
         fullName: user.displayName ?? 'Utilisateur',
@@ -119,10 +117,7 @@ class AuthService {
     }
   }
 
-  /// Récupère le profil Firestore d'un utilisateur par son uid.
-  /// Retourne `null` si le document n'existe pas (compte orphelin).
-  /// Utilisée à la connexion ET au redémarrage de l'app (session persistée),
-  /// pour éviter le bug où le profil restait vide après un restart.
+  @override
   Future<UserModel?> fetchUserProfile(String uid) async {
     final DocumentSnapshot doc = await _firestore
         .collection(AppConstants.usersCollection)
@@ -133,8 +128,6 @@ class AuthService {
     return UserModel.fromMap(doc.data() as Map<String, dynamic>);
   }
 
-  /// Crée un profil minimal si un compte Auth existe sans document
-  /// Firestore associé (cas limite : compte créé hors app, migration...).
   Future<UserModel> _createFallbackProfile(User user) async {
     final UserModel basicUser = UserModel(
       uid: user.uid,
@@ -151,10 +144,7 @@ class AuthService {
     return basicUser;
   }
 
-  /// Met à jour le profil Firestore d'un utilisateur.
-  /// Utilise `merge: true` pour ne modifier que les champs présents dans
-  /// `user.toMap()` sans écraser d'éventuels champs gérés ailleurs
-  /// (ex: followersCount, mis à jour par d'autres écrans plus tard).
+  @override
   Future<void> updateProfile(UserModel user) async {
     try {
       await _firestore
@@ -166,10 +156,8 @@ class AuthService {
     }
   }
 
+  @override
   Future<void> signOut() async {
-    // Déconnecte aussi la session Google si elle existe — sinon la
-    // prochaine tentative de connexion Google resélectionne le même
-    // compte automatiquement sans montrer le sélecteur.
     if (await _googleSignIn.isSignedIn()) {
       await _googleSignIn.signOut();
     }
@@ -181,7 +169,7 @@ class AuthService {
       case 'email-already-in-use':
         return 'Cet email est déjà utilisé. Veuillez vous connecter.';
       case 'invalid-email':
-        return 'Adresse email invalide.';
+        return "L'adresse email n'est pas valide.";
       case 'operation-not-allowed':
         return 'Opération non autorisée. Contactez le support.';
       case 'weak-password':

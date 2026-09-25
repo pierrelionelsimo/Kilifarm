@@ -1,17 +1,25 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'media_repository.dart';
 
-
-class CloudinaryService {
-
-  static const String cloudName = 'dhhiv0jdn';
+/// Implémentation Cloudinary de [MediaRepository] — stockage tiers
+/// gratuit, sans carte bancaire requise (contrairement à Firebase
+/// Storage, qui exige le plan Blaze depuis février 2026).
+///
+/// Utilise un "unsigned upload preset" : upload direct depuis l'app
+/// mobile sans exposer de clé secrète. Voir le README pour la
+/// procédure de création du compte et du preset.
+class CloudinaryMediaRepository implements MediaRepository {
+  // TODO: remplace ces deux valeurs par les tiennes après création de
+  // ton compte Cloudinary. Voir README section "Configurer Cloudinary".
+  static const String cloudName = 'TON_CLOUD_NAME';
   static const String uploadPreset = 'kilifarm_unsigned';
 
   static Uri get _uploadUrl =>
       Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
 
-  /// Upload une image et retourne son URL publique (secure_url).
+  @override
   Future<String> uploadImage(File imageFile) async {
     try {
       final request = http.MultipartRequest('POST', _uploadUrl)
@@ -42,9 +50,7 @@ class CloudinaryService {
     }
   }
 
-  /// Upload plusieurs images l'une après l'autre (pas en parallèle,
-  /// pour rester doux sur les connexions lentes — c'est justement le
-  /// public ciblé par KILIFARM en zone rurale).
+  @override
   Future<List<String>> uploadImages(List<File> images) async {
     final urls = <String>[];
     for (final image in images) {
