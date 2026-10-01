@@ -7,6 +7,7 @@ import '../../widgets/initials_avatar.dart';
 import '../../widgets/post_card.dart';
 import '../profile/profile_screen.dart';
 import '../search/search_screen.dart';
+import '../settings/settings_screen.dart';
 import '../post/create_post_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -53,7 +54,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('KILIFARM'),
+        titleSpacing: 16,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset('assets/icon/icon_k.png', width: 28, height: 28),
+            const SizedBox(width: 8),
+            const Text(
+              'KiliFarm',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryGreen,
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -79,12 +95,12 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await authProvider.logout();
-              if (context.mounted) {
-                Navigator.of(context).pushReplacementNamed('/login');
-              }
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Paramètres',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
             },
           ),
         ],

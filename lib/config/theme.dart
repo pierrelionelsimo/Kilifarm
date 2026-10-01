@@ -27,12 +27,13 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: backgroundColor,
       appBarTheme: const AppBarTheme(
-        backgroundColor: primaryGreen,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        backgroundColor: cardWhite,
+        foregroundColor: textDark,
+        elevation: 0.5,
         centerTitle: false,
+        iconTheme: IconThemeData(color: textDark),
         titleTextStyle: TextStyle(
-          color: Colors.white,
+          color: primaryGreen,
           fontSize: 20,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,

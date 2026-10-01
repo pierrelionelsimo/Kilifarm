@@ -1,0 +1,75 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../config/constants.dart';
+import 'follow_repository.dart';
+
+/// Double sous-collection, même logique que les likes :
+/// - users/{cible}/followers/{toi}   -> existe si tu suis cette personne
+/// - users/{toi}/following/{cible}   -> le miroir, pour lister "qui je suis"
+///
+/// Les deux s'écrivent dans le même batch, avec incrémentation atomique
+/// de followersCount / followingCount sur les deux documents users.
+class FirestoreFollowRepository implements FollowRepository {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  @override
+  Future<bool> isFollowing({
+    required String currentUserId,
+    required String targetUserId,
+  }) async {
+    final doc = await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(targetUserId)
+        .collection('followers')
+        .doc(currentUserId)
+        .get();
+    return doc.exists;
+  }
+
+  @override
+  Future<bool> toggleFollow({
+    required String currentUserId,
+    required String targetUserId,
+  }) async {
+    final usersRef = _firestore.collection(AppConstants.usersCollection);
+    final followerRef =
+        usersRef.doc(targetUserId).collection('followers').doc(currentUserId);
+    final followingRef =
+        usersRef.doc(currentUserId).collection('following').doc(targetUserId);
+
+    final alreadyFollowing = await isFollowing(
+      currentUserId: currentUserId,
+      targetUserId: targetUserId,
+    );
+
+    final batch = _firestore.batch();
+
+    if (alreadyFollowing) {
+      batch.delete(followerRef);
+      batch.delete(followingRef);
+      batch.update(usersRef.doc(targetUserId), {
+        'followersCount': FieldValue.increment(-1),
+      });
+      batch.update(usersRef.doc(currentUserId), {
+        'followingCount': FieldValue.increment(-1),
+      });
+    } else {
+      batch.set(followerRef, {
+        'userId': currentUserId,
+        'followedAt': FieldValue.serverTimestamp(),
+      });
+      batch.set(followingRef, {
+        'userId': targetUserId,
+        'followedAt': FieldValue.serverTimestamp(),
+      });
+      batch.update(usersRef.doc(targetUserId), {
+        'followersCount': FieldValue.increment(1),
+      });
+      batch.update(usersRef.doc(currentUserId), {
+        'followingCount': FieldValue.increment(1),
+      });
+    }
+
+    await batch.commit();
+    return !alreadyFollowing;
+  }
+}

@@ -214,11 +214,81 @@ service cloud.firestore {
 **Sans cette mise à jour**, envoyer un commentaire échouera avec
 `PERMISSION_DENIED` — même symptôme que pour les likes.
 
-## 11. Ce qu'il reste à faire (pas dans ce lot)
+## 11. Règles Firestore mises à jour (+ abonnement/abonnés)
 
-- Suppression de son propre commentaire — pas construit en V1,
-  ajoutable facilement plus tard sans rien casser
-- Pas de recherche/annuaire d'utilisateurs — prochaine étape du
-  scope V1
+**Remplace de nouveau tes règles** — version complète, à jour de tout
+ce qu'on a construit (users, posts, likes, commentaires, abonnements) :
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (
+        request.auth.uid == userId ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['followersCount'])
+      );
+      allow delete: if request.auth != null && request.auth.uid == userId;
+
+      match /followers/{followerId} {
+        allow read: if request.auth != null;
+        allow create, delete: if request.auth != null
+          && request.auth.uid == followerId;
+      }
+
+      match /following/{targetId} {
+        allow read: if request.auth != null;
+        allow create, delete: if request.auth != null
+          && request.auth.uid == userId;
+      }
+    }
+
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['likesCount']) ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['commentsCount'])
+      );
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+
+      match /likes/{userId} {
+        allow read: if request.auth != null;
+        allow create, delete: if request.auth != null
+          && request.auth.uid == userId;
+      }
+
+      match /comments/{commentId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.resource.data.userId == request.auth.uid;
+      }
+    }
+  }
+}
+```
+
+**Point important** : `postsCount` est modifié par le propriétaire du
+post lui-même (toujours `request.auth.uid == userId` sur son propre
+doc), donc pas besoin d'exception dédiée pour ce champ — seul
+`followersCount` (modifié par un AUTRE utilisateur qui te suit)
+nécessite l'exception ci-dessus, comme `likesCount`/`commentsCount`.
+
+**Sans cette mise à jour**, suivre quelqu'un échouera avec
+`PERMISSION_DENIED` sur l'incrémentation de son `followersCount`.
+
+## 12. Ce qu'il reste à faire (pas dans ce lot)
+
+- Liste des abonnés/abonnements (écran dédié) — le bouton et les
+  compteurs fonctionnent, mais pas encore d'écran "voir qui me suit"
+- Suppression de son propre commentaire — pas construit en V1
 - Photo de profil réelle (upload) — V1 utilise un avatar par
   initiales, décision prise volontairement pour rester simple

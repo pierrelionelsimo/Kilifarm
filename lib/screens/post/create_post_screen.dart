@@ -23,7 +23,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   Future<void> _pickImage() async {
     if (_selectedImages.length >= AppConstants.maxImagesPerPost) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(
               'Maximum ${AppConstants.maxImagesPerPost} photos par publication'),
         ),
@@ -113,12 +113,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2, color: AppTheme.primaryGreen),
                   )
                 : const Text(
                     'Publier',
                     style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w700),
+                        color: AppTheme.primaryGreen, fontWeight: FontWeight.w700),
                   ),
           ),
         ],

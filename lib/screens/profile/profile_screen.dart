@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/initials_avatar.dart';
+import '../../widgets/profile_stats_row.dart';
 import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -54,7 +55,13 @@ class ProfileScreen extends StatelessWidget {
                 style: const TextStyle(color: AppTheme.textLight, fontSize: 15),
               ),
             ],
-            const SizedBox(height: 28),
+            const SizedBox(height: 20),
+            ProfileStatsRow(
+              postsCount: user.postsCount,
+              followersCount: user.followersCount,
+              followingCount: user.followingCount,
+            ),
+            const SizedBox(height: 20),
             const Divider(),
             const SizedBox(height: 8),
             _InfoRow(
@@ -75,7 +82,7 @@ class ProfileScreen extends StatelessWidget {
                 value: user.phoneNumber!,
               ),
             const SizedBox(height: 20),
-            Align(
+            const Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 'À propos',

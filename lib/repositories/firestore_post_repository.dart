@@ -43,6 +43,13 @@ class FirestorePostRepository implements PostRepository {
     );
 
     await docRef.set(post.toMap());
+
+    // Corrige un champ défini dès le début du projet (UserModel.postsCount)
+    // mais jamais incrémenté jusqu'ici — resterait à zéro pour tout le monde.
+    await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(userId)
+        .update({'postsCount': FieldValue.increment(1)});
   }
 
   @override
@@ -128,6 +135,17 @@ class FirestorePostRepository implements PostRepository {
 
   @override
   Future<void> deletePost(String postId) async {
-    await _firestore.collection(AppConstants.postsCollection).doc(postId).delete();
+    final postRef = _firestore.collection(AppConstants.postsCollection).doc(postId);
+    final postDoc = await postRef.get();
+    final authorId = postDoc.data()?['userId'] as String?;
+
+    await postRef.delete();
+
+    if (authorId != null) {
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(authorId)
+          .update({'postsCount': FieldValue.increment(-1)});
+    }
   }
 }
