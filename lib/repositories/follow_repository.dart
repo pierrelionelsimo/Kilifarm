@@ -1,3 +1,5 @@
+import '../models/user_model.dart';
+
 /// Contrat pour le système d'abonnement (suivre/ne plus suivre un
 /// utilisateur). Même principe que les autres repositories : les
 /// écrans ne connaissent que ce contrat, jamais Firestore directement.
@@ -14,4 +16,10 @@ abstract class FollowRepository {
     required String currentUserId,
     required String targetUserId,
   });
+
+  /// Utilisateurs qui suivent [userId].
+  Future<List<UserModel>> getFollowers(String userId);
+
+  /// Utilisateurs que [userId] suit.
+  Future<List<UserModel>> getFollowing(String userId);
 }

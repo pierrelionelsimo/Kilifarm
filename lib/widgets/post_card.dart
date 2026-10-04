@@ -5,15 +5,15 @@ import 'comments_sheet.dart';
 import 'initials_avatar.dart';
 
 /// Carte de publication façon Instagram : images plein cadre défilables
-/// avec pastilles, double-tap pour aimer (cœur animé), boutons like
-/// fonctionnels. Le commentaire reste affiché mais non cliquable —
-/// c'est la prochaine étape du scope V1, pas mélangée ici.
+/// avec pastilles, double-tap pour aimer (cœur animé), boutons like et
+/// commentaires fonctionnels.
 class PostCard extends StatefulWidget {
   final PostModel post;
   final String currentUserId;
   final void Function(String postId) onLikeToggle;
   final void Function(String postId) onDelete;
   final void Function(String postId) onCommentAdded;
+  final void Function(String postId) onCommentDeleted;
 
   const PostCard({
     super.key,
@@ -22,6 +22,7 @@ class PostCard extends StatefulWidget {
     required this.onLikeToggle,
     required this.onDelete,
     required this.onCommentAdded,
+    required this.onCommentDeleted,
   });
 
   @override
@@ -245,7 +246,9 @@ class _PostCardState extends State<PostCard>
                     CommentsSheet.show(
                       context,
                       postId: post.id,
+                      currentUserId: widget.currentUserId,
                       onCommentAdded: () => widget.onCommentAdded(post.id),
+                      onCommentDeleted: () => widget.onCommentDeleted(post.id),
                     );
                   },
                 ),

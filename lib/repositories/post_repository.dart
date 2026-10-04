@@ -22,4 +22,9 @@ abstract class PostRepository {
   Future<void> toggleLike({required String postId, required String userId});
 
   Future<void> deletePost(String postId);
+  
+  Future<List<PostModel>> fetchPostsByUser({
+      required String userId,
+      String? currentUserId,
+    });
 }

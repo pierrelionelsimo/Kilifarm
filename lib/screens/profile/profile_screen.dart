@@ -4,7 +4,9 @@ import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/initials_avatar.dart';
 import '../../widgets/profile_stats_row.dart';
+import '../../widgets/profile_post_grid.dart';
 import 'edit_profile_screen.dart';
+import 'follow_list_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -38,72 +40,114 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            InitialsAvatar(fullName: user.fullName, radius: 48),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  InitialsAvatar(fullName: user.fullName, radius: 48),
+                  const SizedBox(height: 16),
+                  Text(
+                    user.fullName,
+                    style: const TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  if (hasActivity) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      user.activityType!,
+                      style: const TextStyle(
+                          color: AppTheme.textLight, fontSize: 15),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  ProfileStatsRow(
+                    postsCount: user.postsCount,
+                    followersCount: user.followersCount,
+                    followingCount: user.followingCount,
+                    onTapFollowers: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => FollowListScreen(
+                          userId: user.uid,
+                          userName: user.fullName,
+                        ),
+                      ),
+                    ),
+                    onTapFollowing: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => FollowListScreen(
+                          userId: user.uid,
+                          userName: user.fullName,
+                          initialTab: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  _InfoRow(
+                    icon: Icons.location_on_outlined,
+                    label: 'Région',
+                    value: hasRegion ? user.region! : 'Non renseignée',
+                    isPlaceholder: !hasRegion,
+                  ),
+                  _InfoRow(
+                    icon: Icons.email_outlined,
+                    label: 'Email',
+                    value: user.email,
+                  ),
+                  if (hasPhone)
+                    _InfoRow(
+                      icon: Icons.phone_outlined,
+                      label: 'Téléphone',
+                      value: user.phoneNumber!,
+                    ),
+                  const SizedBox(height: 20),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'À propos',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textDark,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      hasBio ? user.bio! : 'Aucune bio pour le moment.',
+                      style: TextStyle(
+                        color: hasBio ? AppTheme.textDark : AppTheme.textLight,
+                        fontStyle: hasBio ? FontStyle.normal : FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Publications',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textDark,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ),
+            ProfilePostGrid(userId: user.uid, currentUserId: user.uid),
             const SizedBox(height: 16),
-            Text(
-              user.fullName,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            if (hasActivity) ...[
-              const SizedBox(height: 4),
-              Text(
-                user.activityType!,
-                style: const TextStyle(color: AppTheme.textLight, fontSize: 15),
-              ),
-            ],
-            const SizedBox(height: 20),
-            ProfileStatsRow(
-              postsCount: user.postsCount,
-              followersCount: user.followersCount,
-              followingCount: user.followingCount,
-            ),
-            const SizedBox(height: 20),
-            const Divider(),
-            const SizedBox(height: 8),
-            _InfoRow(
-              icon: Icons.location_on_outlined,
-              label: 'Région',
-              value: hasRegion ? user.region! : 'Non renseignée',
-              isPlaceholder: !hasRegion,
-            ),
-            _InfoRow(
-              icon: Icons.email_outlined,
-              label: 'Email',
-              value: user.email,
-            ),
-            if (hasPhone)
-              _InfoRow(
-                icon: Icons.phone_outlined,
-                label: 'Téléphone',
-                value: user.phoneNumber!,
-              ),
-            const SizedBox(height: 20),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'À propos',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textDark,
-                  fontSize: 15,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                hasBio ? user.bio! : 'Aucune bio pour le moment.',
-                style: TextStyle(
-                  color: hasBio ? AppTheme.textDark : AppTheme.textLight,
-                  fontStyle: hasBio ? FontStyle.normal : FontStyle.italic,
-                ),
-              ),
-            ),
           ],
         ),
       ),

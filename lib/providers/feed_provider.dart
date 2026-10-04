@@ -125,6 +125,29 @@ class FeedProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Décrémente localement le compteur de commentaires d'un post,
+  /// symétrique à incrementCommentCount, après une suppression réussie
+  /// depuis le panneau de commentaires.
+  void decrementCommentCount(String postId) {
+    final index = _posts.indexWhere((p) => p.id == postId);
+    if (index == -1) return;
+
+    final post = _posts[index];
+    _posts[index] = PostModel(
+      id: post.id,
+      userId: post.userId,
+      userName: post.userName,
+      userProfileImage: post.userProfileImage,
+      content: post.content,
+      imageUrls: post.imageUrls,
+      createdAt: post.createdAt,
+      likesCount: post.likesCount,
+      commentsCount: post.commentsCount > 0 ? post.commentsCount - 1 : 0,
+      isLikedByMe: post.isLikedByMe,
+    );
+    notifyListeners();
+  }
+
   /// Supprime un post et le retire immédiatement de l'affichage local.
   Future<bool> deletePost(String postId) async {
     try {

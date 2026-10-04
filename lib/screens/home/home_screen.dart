@@ -8,7 +8,12 @@ import '../../widgets/post_card.dart';
 import '../profile/profile_screen.dart';
 import '../search/search_screen.dart';
 import '../settings/settings_screen.dart';
+import '../messages/conversations_screen.dart';
+import '../../models/conversation_model.dart';
+import '../../repositories/message_repository.dart';
+import '../../repositories/firestore_message_repository.dart';
 import '../post/create_post_screen.dart';
+import '../../widgets/stories_bar.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,7 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Charge le fil dès l'arrivée sur l'écran.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final uid = context.read<AuthProvider>().userModel?.uid;
       context.read<FeedProvider>().loadInitial(currentUserId: uid);
@@ -32,7 +36,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onScroll() {
-    // Charge la page suivante quand on approche du bas de la liste.
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       final uid = context.read<AuthProvider>().userModel?.uid;
@@ -70,16 +73,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+        // La recherche n'est plus une icône ici : elle vit dans la
+        // bande détachée en dessous (bloc `bottom:`), schéma Facebook.
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            tooltip: 'Rechercher',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SearchScreen()),
-              );
-            },
-          ),
+          _MessagesIconButton(currentUserId: authProvider.userModel?.uid),
           IconButton(
             icon: authProvider.userModel != null
                 ? InitialsAvatar(
@@ -104,8 +101,49 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            // Pastille grise tapable (pas un vrai TextField — la saisie
+            // se fait sur SearchScreen). De la place est laissée pour
+            // ajouter plus tard des notifications ou des filtres à côté.
+            child: Material(
+              color: const Color(0xFFF0F0F0),
+              borderRadius: BorderRadius.circular(22),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(22),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SearchScreen()),
+                  );
+                },
+                child: Container(
+                  height: 40,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.search, color: AppTheme.textLight, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Rechercher sur KiliFarm...',
+                        style: TextStyle(color: AppTheme.textLight, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
-      body: _buildBody(feedProvider),
+      body: Column(
+        children: [
+          const StoriesBar(),
+          const Divider(height: 1),
+          Expanded(child: _buildBody(feedProvider)),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.of(context).push(
@@ -195,9 +233,73 @@ class _HomeScreenState extends State<HomeScreen> {
             onDelete: (postId) => feedProvider.deletePost(postId),
             onCommentAdded: (postId) =>
                 feedProvider.incrementCommentCount(postId),
+            onCommentDeleted: (postId) =>
+                feedProvider.decrementCommentCount(postId),
           );
         },
       ),
+    );
+  }
+}
+
+/// Icône Messages avec pastille orange si au moins une conversation
+/// contient un message non lu. `Icons.send_outlined` (avion en papier,
+/// façon Instagram) — volontairement différent de
+/// `Icons.chat_bubble_outline`, déjà utilisé pour les commentaires.
+class _MessagesIconButton extends StatelessWidget {
+  final String? currentUserId;
+
+  const _MessagesIconButton({required this.currentUserId});
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = currentUserId;
+
+    if (uid == null) {
+      return IconButton(
+        icon: const Icon(Icons.send_outlined),
+        tooltip: 'Messages',
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const ConversationsScreen()),
+        ),
+      );
+    }
+
+    final MessageRepository messageRepository = FirestoreMessageRepository();
+
+    return StreamBuilder<List<ConversationModel>>(
+      stream: messageRepository.watchConversations(uid),
+      builder: (context, snapshot) {
+        final hasUnread =
+            (snapshot.data ?? []).any((conv) => conv.isUnread(uid));
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.send_outlined),
+              tooltip: 'Messages',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ConversationsScreen()),
+              ),
+            ),
+            if (hasUnread)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentOrange,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppTheme.cardWhite, width: 1.5),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

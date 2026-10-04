@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/constants.dart';
+import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -227,6 +228,59 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     color: Colors.white, strokeWidth: 2),
                               )
                             : const Text('Créer mon compte'),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('ou',
+                          style: TextStyle(color: Colors.grey.shade600)),
+                    ),
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, _) {
+                    return SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: OutlinedButton.icon(
+                        onPressed: authProvider.isLoading
+                            ? null
+                            : () async {
+                                final success =
+                                    await authProvider.loginWithGoogle();
+                                if (!context.mounted) return;
+                                if (success) {
+                                  Navigator.of(context)
+                                      .pushReplacementNamed('/home');
+                                } else if (authProvider.errorMessage != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content:
+                                          Text(authProvider.errorMessage!),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                                // Si success==false sans errorMessage,
+                                // l'utilisateur a juste annulé.
+                              },
+                        icon: const Icon(Icons.g_mobiledata, size: 28),
+                        label: const Text('Continuer avec Google'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.textDark,
+                          side: BorderSide(color: Colors.grey.shade400),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
                       ),
                     );
                   },

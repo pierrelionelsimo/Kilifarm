@@ -44,4 +44,15 @@ class FirestoreCommentRepository implements CommentRepository {
     await commentRef.set(comment.toMap());
     await postRef.update({'commentsCount': FieldValue.increment(1)});
   }
+
+  @override
+  Future<void> deleteComment({
+    required String postId,
+    required String commentId,
+  }) async {
+    final postRef =
+        _firestore.collection(AppConstants.postsCollection).doc(postId);
+    await postRef.collection('comments').doc(commentId).delete();
+    await postRef.update({'commentsCount': FieldValue.increment(-1)});
+  }
 }

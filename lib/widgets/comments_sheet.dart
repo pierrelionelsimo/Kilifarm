@@ -9,24 +9,32 @@ import 'initials_avatar.dart';
 
 /// Panneau de commentaires en bottom sheet, façon Instagram/Facebook.
 /// Liste temps réel (StreamBuilder) + champ de saisie fixé en bas.
+/// Chaque commentaire qu'on a soi-même écrit peut être supprimé
+/// (icône visible seulement sur ses propres commentaires).
 ///
 /// Ouvert via [CommentsSheet.show] depuis PostCard. `onCommentAdded`
-/// permet au parent de mettre à jour son compteur local sans attendre
-/// un rechargement complet du fil.
+/// et `onCommentDeleted` permettent au parent de mettre à jour son
+/// compteur local sans attendre un rechargement complet du fil.
 class CommentsSheet extends StatefulWidget {
   final String postId;
+  final String currentUserId;
   final VoidCallback onCommentAdded;
+  final VoidCallback onCommentDeleted;
 
   const CommentsSheet({
     super.key,
     required this.postId,
+    required this.currentUserId,
     required this.onCommentAdded,
+    required this.onCommentDeleted,
   });
 
   static void show(
     BuildContext context, {
     required String postId,
+    required String currentUserId,
     required VoidCallback onCommentAdded,
+    required VoidCallback onCommentDeleted,
   }) {
     showModalBottomSheet(
       context: context,
@@ -36,7 +44,9 @@ class CommentsSheet extends StatefulWidget {
       ),
       builder: (context) => CommentsSheet(
         postId: postId,
+        currentUserId: currentUserId,
         onCommentAdded: onCommentAdded,
+        onCommentDeleted: onCommentDeleted,
       ),
     );
   }
@@ -84,6 +94,42 @@ class _CommentsSheetState extends State<CommentsSheet> {
     }
 
     if (mounted) setState(() => _isSending = false);
+  }
+
+  Future<void> _confirmDeleteComment(CommentModel comment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer le commentaire ?'),
+        content: const Text('Cette action est irréversible.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _commentRepository.deleteComment(
+        postId: widget.postId,
+        commentId: comment.id,
+      );
+      widget.onCommentDeleted();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur lors de la suppression.')),
+        );
+      }
+    }
   }
 
   String _timeAgo(DateTime date) {
@@ -157,6 +203,8 @@ class _CommentsSheetState extends State<CommentsSheet> {
                       itemCount: comments.length,
                       itemBuilder: (context, index) {
                         final comment = comments[index];
+                        final isMine = comment.userId == widget.currentUserId;
+
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 14),
                           child: Row(
@@ -194,6 +242,15 @@ class _CommentsSheetState extends State<CommentsSheet> {
                                   ],
                                 ),
                               ),
+                              if (isMine)
+                                InkWell(
+                                  onTap: () => _confirmDeleteComment(comment),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(4),
+                                    child: Icon(Icons.delete_outline,
+                                        size: 18, color: AppTheme.textLight),
+                                  ),
+                                ),
                             ],
                           ),
                         );

@@ -102,7 +102,48 @@ class FirestorePostRepository implements PostRepository {
       lastDoc: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
     );
   }
+    @override
+  Future<List<PostModel>> fetchPostsByUser({
+    required String userId,
+    String? currentUserId,
+  }) async {
+    final snapshot = await _firestore
+        .collection(AppConstants.postsCollection)
+        .where('userId', isEqualTo: userId)
+        .get();
 
+    final posts = <PostModel>[];
+
+    for (final doc in snapshot.docs) {
+      final base = PostModel.fromMap(doc.data());
+
+      bool likedByMe = false;
+      if (currentUserId != null) {
+        final likeDoc = await _firestore
+            .collection(AppConstants.postsCollection)
+            .doc(base.id)
+            .collection('likes')
+            .doc(currentUserId)
+            .get();
+        likedByMe = likeDoc.exists;
+      }
+
+      posts.add(PostModel(
+        id: base.id,
+        userId: base.userId,
+        userName: base.userName,
+        userProfileImage: base.userProfileImage,
+        content: base.content,
+        imageUrls: base.imageUrls,
+        createdAt: base.createdAt,
+        likesCount: base.likesCount,
+        commentsCount: base.commentsCount,
+        isLikedByMe: likedByMe,
+      ));
+    }
+
+    return posts;
+  }
   @override
   Future<void> toggleLike({
     required String postId,

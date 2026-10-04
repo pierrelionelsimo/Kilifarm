@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/constants.dart';
+import '../models/user_model.dart';
 import 'follow_repository.dart';
 
 /// Double sous-collection, même logique que les likes :
@@ -71,5 +72,38 @@ class FirestoreFollowRepository implements FollowRepository {
 
     await batch.commit();
     return !alreadyFollowing;
+  }
+
+  @override
+  Future<List<UserModel>> getFollowers(String userId) {
+    return _resolveUsers(_firestore
+        .collection(AppConstants.usersCollection)
+        .doc(userId)
+        .collection('followers'));
+  }
+
+  @override
+  Future<List<UserModel>> getFollowing(String userId) {
+    return _resolveUsers(_firestore
+        .collection(AppConstants.usersCollection)
+        .doc(userId)
+        .collection('following'));
+  }
+
+  /// Les docs de `followers`/`following` ne stockent que l'UID (comme
+  /// ID de doc) ; on va chercher le UserModel complet derrière, en
+  /// parallèle plutôt qu'un par un pour ne pas empiler les allers-retours.
+  Future<List<UserModel>> _resolveUsers(CollectionReference ref) async {
+    final snapshot = await ref.get();
+    final usersRef = _firestore.collection(AppConstants.usersCollection);
+
+    final docs = await Future.wait(
+      snapshot.docs.map((doc) => usersRef.doc(doc.id).get()),
+    );
+
+    return docs
+        .where((d) => d.exists)
+        .map((d) => UserModel.fromMap(d.data() as Map<String, dynamic>))
+        .toList();
   }
 }

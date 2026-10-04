@@ -13,7 +13,7 @@ import 'media_repository.dart';
 class CloudinaryMediaRepository implements MediaRepository {
   // TODO: remplace ces deux valeurs par les tiennes après création de
   // ton compte Cloudinary. Voir README section "Configurer Cloudinary".
-  static const String cloudName = 'TON_CLOUD_NAME';
+  static const String cloudName = 'dhhiv0jdn';
   static const String uploadPreset = 'kilifarm_unsigned';
 
   static Uri get _uploadUrl =>
